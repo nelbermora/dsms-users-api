@@ -1,11 +1,14 @@
 # DPMS Users API
 
 GET /users Shows a List of Users
-GET /users/{userId} Shows User required if exists
-POST /users Creates a new User
-PUT /users Updates the user posted
-DELETE /user/{userId} Deletes a determined user
 
+GET /users/{userId} Shows User required if exists
+
+POST /users Creates a new User
+
+PUT /users Updates the user posted
+
+DELETE /user/{userId} Deletes a determined user
 
 Example of Response
 
