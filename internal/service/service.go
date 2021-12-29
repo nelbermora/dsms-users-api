@@ -1,42 +1,70 @@
 package service
 
 import (
-	"github.com/nelbermora/go-interfaces/internal/repository"
+	"github.com/nelbermora/dsms-users-api/internal/model"
+	"github.com/nelbermora/dsms-users-api/internal/repository"
 )
 
-// al igual que el repo se implementa el service a traves de interfaz
-// recordemos los tres elementos son : Interface, struct y funcion constructora
-// Interface notar que inicia con mayuscula para que sea publica
 type Service interface {
-	DummyFunc() (string, error)
+	GetUser(id int) (*model.User, error)
+	UpdateUser(model.User) (*model.User, error)
+	DeleteUser(int) error
+	CreateUser(model.User) (*model.User, error)
+	GetUsers() ([]model.User, error)
 }
 
-// struct, aca definimos lo que necesitamos inyectarle al service, el repo por ejemplo
 type service struct {
-	repo repository.RepositoryInterfaz
+	UserRepo   repository.UserRepository
+	BranchRepo repository.BranchRepository
 }
 
-// funcion constructora
-func NewService(repoInyectado repository.RepositoryInterfaz) Service {
+func NewService(usrRepo repository.UserRepository, branchRepo repository.BranchRepository) Service {
 	return &service{
-		repo: repoInyectado,
+		UserRepo:   usrRepo,
+		BranchRepo: branchRepo,
 	}
 }
 
-// en este pkg puede ir la logica de negocio
-
-func (s *service) DummyFunc() (string, error) {
-	// para este ejemplo la funcion solo ejecutara la llamada al SP,
-	// si esta se ejecuta correctamente entonces retornara un mensajem si no el error
-	// ahora el repositorio se implementa a través de una interfaz, para invocar al repo debo crearlo con las dependencias que se requieran
-	//return repository.LlamarSP()
-	// esto debe hacerse al inicializarse la aplicacion, hacerlo aqui es una muy mala practica, pero a efectos del ejemplo lo haremos en este bloque de codigo
-	// creo el repo indicando cual DB va a utilizar, le paso por parametro la base ya inicializada
-	// se comenta esta bloque ya que ahora no se requiere construir aca el repo, pues ya viene inyectado cuando se crea el service
-	/*
-		myRepo := repository.NewRepository(db.MyDB)
-		return myRepo.LlamarSP()
-	*/
-	return s.repo.LlamarSP()
-
+func (s *service) GetUser(id int) (*model.User, error) {
+	usr, err := s.UserRepo.GetUser(id)
+	if err != nil {
+		return nil, err
+	}
+	usr.Branch, err = s.BranchRepo.GetBranch(usr.BranchId)
+	if err != nil {
+		return nil, err
+	}
+	return usr, nil
+}
+func (s *service) UpdateUser(user model.User) (*model.User, error) {
+	usr, err := s.UserRepo.UpdateUser(user)
+	if err != nil {
+		return nil, err
+	}
+	return usr, nil
+}
+func (s *service) DeleteUser(id int) error {
+	err := s.UserRepo.DeleteUser(id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (s *service) CreateUser(user model.User) (*model.User, error) {
+	usr, err := s.UserRepo.CreateUser(user)
+	if err != nil {
+		return nil, err
+	}
+	usr.Branch, err = s.BranchRepo.GetBranch(usr.BranchId)
+	if err != nil {
+		return nil, err
+	}
+	return usr, nil
+}
+func (s *service) GetUsers() ([]model.User, error) {
+	usrs, err := s.UserRepo.GetUsers()
+	if err != nil {
+		return nil, err
+	}
+	return usrs, nil
 }

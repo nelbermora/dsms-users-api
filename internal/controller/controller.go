@@ -3,69 +3,128 @@ package controller
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
-	"github.com/nelbermora/go-interfaces/internal/model"
-	"github.com/nelbermora/go-interfaces/internal/service"
+	"github.com/gorilla/mux"
+	"github.com/nelbermora/dsms-users-api/internal/model"
+	"github.com/nelbermora/dsms-users-api/internal/service"
 )
 
-// notar que en este caso no se hace uso de interfaz,
-// esto debido a que los controladores tienen practicamente la misma definicion siemre
-// son funcionoes que siempre recibe (http.ResponseWriter, r *http.Request)
 type Controller struct {
-	service service.Service
+	svc service.Service
 }
 
-func NewController(svc service.Service) Controller {
-	return Controller{
-		service: svc,
+func NewController(svc service.Service) *Controller {
+	return &Controller{
+		svc: svc,
 	}
 }
 
-func (c *Controller) EndpointController(rw http.ResponseWriter, r *http.Request) {
-	/*
-		en esta funcion se controla el request y response,
-		aca se pueden hacer valdiaciones del request y si esta todo ok
-		se invoca a la funcion que contiene la logica de negocio.
-		Tambien se general las respuestas a cada peticion
-		El alcance de este ejemplo es solo demostrar el funcionamiento de la capa web o http a traves de go chi
-	*/
-	// para efectos ilustrativos se define un modelo que sera nuestra respuesta
-	// se crea el objeto que vamos a responder
-	var response model.Response
-	//se parsea el input del request sobre la variable req
-	var req model.Request
-	err := json.NewDecoder(r.Body).Decode(&req)
-	// si no se puede parseer entonces el json del request esta errado y se puede informar al cliente el bad request
+func (c *Controller) GetUsers(rw http.ResponseWriter, r *http.Request) {
+	usrs, err := c.svc.GetUsers()
 	if err != nil {
-		rw.Header().Add("Content-Type", "application/json")
-		rw.WriteHeader(400)
+		rw.WriteHeader(http.StatusInternalServerError)
+		rw.Write(wrapError(http.StatusInternalServerError, err.Error()))
 		return
 	}
-	// si llegamos a este punto es porque el json de entrada esta bien
-	// aca se puede hacer una validacion de calidad de dato si queremos
-	err = req.Validate()
-	if err != nil {
-		response.Message = err.Error()
-		rw.Header().Add("Content-Type", "application/json")
-		rw.WriteHeader(400)
-		data, _ := json.Marshal(response)
-		// se escribe la respuesta, este es el ultimo paso
-		rw.Write(data)
-		return
-	}
-	// si llegamos a este punto es porque todas las validaciones de la capa web estan ok
-	message, err := c.service.DummyFunc()
-	if err != nil {
-		response.Message = "Error al consultar DB: " + err.Error()
-	} else {
-		response.Message = message
-	}
-	// se añaden los headers correspondientes y el status de la respuesta
-	rw.Header().Add("Content-Type", "application/json")
-	rw.WriteHeader(200)
-	// se parsea a json el struct Response
-	data, _ := json.Marshal(response)
-	// se escribe la respuesta, este es el ultimo paso
+	data, _ := json.Marshal(usrs)
 	rw.Write(data)
+}
 
+func (c *Controller) GetUser(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userId, err := strconv.Atoi(vars["userId"])
+	if err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		rw.Write(wrapError(http.StatusBadRequest, "Id requested error"))
+		return
+	}
+	usr, err := c.svc.GetUser(userId)
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		rw.Write(wrapError(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	if usr == nil {
+		rw.WriteHeader(http.StatusNotFound)
+		rw.Write(wrapError(http.StatusNotFound, "User not found"))
+		return
+	}
+	data, _ := json.Marshal(usr)
+	rw.Write(data)
+}
+
+func (c *Controller) UpdateUser(rw http.ResponseWriter, r *http.Request) {
+	var usr model.User
+	err := json.NewDecoder(r.Body).Decode(&usr)
+	if err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		rw.Write(wrapError(http.StatusBadRequest, "Bad Request"))
+		return
+	}
+	err = usr.Validate()
+	if err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		rw.Write(wrapError(http.StatusBadRequest, err.Error()))
+		return
+	}
+	var updated *model.User
+	updated, err = c.svc.UpdateUser(usr)
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		rw.Write(wrapError(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	data, _ := json.Marshal(updated)
+	rw.WriteHeader(http.StatusOK)
+	rw.Write(data)
+}
+
+func (c *Controller) DeleteUser(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userId, err := strconv.Atoi(vars["userId"])
+	if err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		rw.Write(wrapError(http.StatusBadRequest, "Id requested error"))
+		return
+	}
+	err = c.svc.DeleteUser(userId)
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		rw.Write(wrapError(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	rw.WriteHeader(http.StatusNoContent)
+}
+
+func (c *Controller) CreateUser(rw http.ResponseWriter, r *http.Request) {
+	var usr model.User
+	err := json.NewDecoder(r.Body).Decode(&usr)
+	if err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		rw.Write(wrapError(http.StatusBadRequest, "Bad Request"))
+		return
+	}
+	err = usr.Validate()
+	if err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		rw.Write(wrapError(http.StatusBadRequest, err.Error()))
+		return
+	}
+	var created *model.User
+	created, err = c.svc.CreateUser(usr)
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		rw.Write(wrapError(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	data, _ := json.Marshal(created)
+	rw.WriteHeader(http.StatusCreated)
+	rw.Write(data)
+}
+
+func wrapError(code int, message string) []byte {
+	stError := model.NewStError(code, message)
+	data, _ := json.Marshal(stError)
+	return data
 }
