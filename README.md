@@ -1,11 +1,29 @@
-# Final Project
+# DPMS Users API
 
-Este ejemplos se acerca un poco mas a la estructura de un deploy productivo.
+GET /users Shows a List of Users
+GET /users/{userId} Shows User required if exists
+POST /users Creates a new User
+PUT /users Updates the user posted
+DELETE /user/{userId} Deletes a determined user
 
-### 1. Interfaces en todas las capas
 
-### 2. Testing tambien en el service
+Example of Response
 
-### 3. Emula el uso del config y lectura de properties desde un archivo
+```json
 
-### 4. En el endpoint ahora se ejecuta un POST y muestra como se puede validar que ese request este correcto, tanto a nivel de formato como de calidad del dato.
+{
+  "id": 1,
+  "name": "John",
+  "lastName": "Doe",
+  "title": "Marketing Director",
+  "branchId": 1,
+  "role": 1,
+  "status": "active",
+  "branch": {
+    "id": 1,
+    "name": "Testing Branch",
+    "address": "",
+    "status": "Active"
+  }
+}
+```
