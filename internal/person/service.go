@@ -1,8 +1,7 @@
-package service
+package person
 
 import (
 	"github.com/nelbermora/dsms-users-api/internal/model"
-	"github.com/nelbermora/dsms-users-api/internal/repository"
 )
 
 type Service interface {
@@ -14,14 +13,12 @@ type Service interface {
 }
 
 type service struct {
-	UserRepo   repository.UserRepository
-	BranchRepo repository.BranchRepository
+	UserRepo UserRepository
 }
 
-func NewService(usrRepo repository.UserRepository, branchRepo repository.BranchRepository) Service {
+func NewService(usrRepo UserRepository) Service {
 	return &service{
-		UserRepo:   usrRepo,
-		BranchRepo: branchRepo,
+		UserRepo: usrRepo,
 	}
 }
 
@@ -30,9 +27,8 @@ func (s *service) GetUser(id int) (*model.User, error) {
 	if err != nil {
 		return nil, err
 	}
-	usr.Branch, err = s.BranchRepo.GetBranch(usr.BranchId)
-	if err != nil {
-		return nil, err
+	if usr == nil {
+		return nil, nil
 	}
 	return usr, nil
 }
@@ -52,10 +48,6 @@ func (s *service) DeleteUser(id int) error {
 }
 func (s *service) CreateUser(user model.User) (*model.User, error) {
 	usr, err := s.UserRepo.CreateUser(user)
-	if err != nil {
-		return nil, err
-	}
-	usr.Branch, err = s.BranchRepo.GetBranch(usr.BranchId)
 	if err != nil {
 		return nil, err
 	}

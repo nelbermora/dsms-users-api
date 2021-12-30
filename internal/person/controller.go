@@ -1,4 +1,4 @@
-package controller
+package person
 
 import (
 	"encoding/json"
@@ -7,14 +7,13 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/nelbermora/dsms-users-api/internal/model"
-	"github.com/nelbermora/dsms-users-api/internal/service"
 )
 
 type Controller struct {
-	svc service.Service
+	svc Service
 }
 
-func NewController(svc service.Service) *Controller {
+func NewController(svc Service) *Controller {
 	return &Controller{
 		svc: svc,
 	}

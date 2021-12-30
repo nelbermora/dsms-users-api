@@ -6,11 +6,12 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/nelbermora/dsms-users-api/internal/server"
+	"github.com/gorilla/handlers"
+	web "github.com/nelbermora/dsms-users-api/http"
 )
 
 func main() {
-	router, _ := server.SetupDependencies()
+	router, _ := web.SetupDependencies()
 	log.Println("initializing Users API")
 	port := os.Getenv("PORT")
 	var servePort string
@@ -19,7 +20,14 @@ func main() {
 	} else {
 		servePort = ":" + port
 	}
-	err := http.ListenAndServe(servePort, router)
+
+	err := http.ListenAndServe(servePort, handlers.CORS(
+		handlers.AllowedOrigins([]string{"*"}),
+		handlers.AllowedMethods([]string{"POST", "GET", "HEAD", "OPTIONS"}),
+		handlers.AllowedHeaders([]string{"Authorization", "Content-Type"}),
+		handlers.AllowCredentials(),
+	)(router))
+
 	if err != nil {
 		log.Fatal(fmt.Sprintf("could not initialize server: %s", err.Error()))
 	}
